@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Borrador morado - TABLETA</title>
+    <title>Borrador morado - TABLETA (Simplificada)</title>
     
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <!-- SDKs de Firebase -->
@@ -43,9 +43,9 @@
         #boton-empezar {
             background-color: #9b59b6;
             color: white;
-            font-size: 2rem;
+            font-size: 2.5rem;
             font-weight: bold;
-            padding: 15px 50px;
+            padding: 20px 60px;
             border: none;
             border-radius: 50px;
             cursor: pointer;
@@ -63,49 +63,13 @@
             transform: scale(0.95);
         }
 
-        .contenedor-ui {
-            display: flex;
-            width: 100%;
-            max-width: 800px;
-            align-items: center;
-            gap: 15px;
-            margin-bottom: 20px;
-            flex-shrink: 0;
-        }
-
-        .fondo-barra {
-            flex-grow: 1;
-            background: #ecf0f1;
-            border-radius: 12px;
-            height: 24px;
-            border: 2px solid #bdc3c7;
-            overflow: hidden;
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
-        }
-
-        #barra-progreso {
-            width: 0%;
-            height: 100%;
-            background-color: #9b59b6; 
-            transition: width 0.2s ease-out;
-        }
-
-        #texto-progreso {
-            font-weight: bold;
-            font-size: 1.2rem;
-            min-width: 55px;
-            text-align: right;
-            color: #8e44ad;
-        }
-
         .contenedor-lienzo {
             position: relative;
             width: 100%;
-            max-width: 800px;
-            flex-grow: 1;
-            min-height: 0;
+            max-width: 1600px;
+            flex-grow: 1; /* Ocupa todo el espacio ahora que no hay barra */
             border: 2px solid #e0e0e0;
-            border-radius: 8px;
+            border-radius: 12px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.05);
             overflow: hidden;
             cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cpath d='M8 8 L28 28 C32 32 26 36 22 32 L2 12 Z' fill='%239b59b6' stroke='%238e44ad' stroke-width='1.5'/%3E%3Cpolygon points='0,0 10,3 3,10' fill='%23ecf0f1' stroke='%23bdc3c7' stroke-width='1'/%3E%3C/svg%3E") 0 0, crosshair;
@@ -120,15 +84,8 @@
             height: 100%;
         }
 
-        #canvas-amarillo {
-            background-color: #ffffff; 
-            pointer-events: none;
-        }
-
-        #canvas-morado {
-            background-color: transparent;
-            pointer-events: auto; 
-        }
+        #canvas-amarillo { background-color: #ffffff; pointer-events: none; }
+        #canvas-morado { background-color: transparent; pointer-events: auto; }
     </style>
 </head>
 <body>
@@ -137,13 +94,7 @@
         <button id="boton-empezar">EMPEZAR</button>
     </div>
 
-    <div class="contenedor-ui">
-        <div class="fondo-barra">
-            <div id="barra-progreso"></div>
-        </div>
-        <span id="texto-progreso">0%</span>
-    </div>
-
+    <!-- Se eliminó el contenedor de la UI para dejar el lienzo al 100% -->
     <div class="contenedor-lienzo">
         <canvas id="canvas-amarillo"></canvas>
         <canvas id="canvas-morado"></canvas>
@@ -162,7 +113,6 @@
             measurementId: "G-W7MJGWB2VR"
         };
         
-        // Inicializar Firebase
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
@@ -173,9 +123,6 @@
         const canvasMorado = document.getElementById('canvas-morado');
         const ctxMorado = canvasMorado.getContext('2d');
         
-        const barraProgreso = document.getElementById('barra-progreso');
-        const textoProgreso = document.getElementById('texto-progreso');
-
         const pantallaInicio = document.getElementById('pantalla-inicio');
         const botonEmpezar = document.getElementById('boton-empezar');
 
@@ -193,12 +140,8 @@
             const elemento = document.documentElement;
             if (elemento.requestFullscreen) {
                 elemento.requestFullscreen().catch(err => console.log("No se pudo entrar a pantalla completa:", err));
-            } else if (elemento.mozRequestFullScreen) {
-                elemento.mozRequestFullScreen();
             } else if (elemento.webkitRequestFullscreen) {
                 elemento.webkitRequestFullscreen();
-            } else if (elemento.msRequestFullscreen) {
-                elemento.msRequestFullscreen();
             }
 
             pantallaInicio.style.display = 'none';
@@ -208,7 +151,6 @@
                 desvanecerMorado();
                 reiniciarTemporizador();
                 
-                // Limpiamos la base de datos de trazos anteriores al iniciar
                 db.ref('espejo/trazos').remove();
                 db.ref('espejo/ui').set({ progreso: 0, confeti: false });
                 
@@ -234,8 +176,9 @@
                 ctx.lineJoin = 'round';
             });
 
-            anchoCuadro = anchoReal * 0.6; 
-            altoCuadro = altoReal * 0.6;   
+            // Área ampliada para mayor comodidad al dibujar
+            anchoCuadro = anchoReal * 0.85; 
+            altoCuadro = altoReal * 0.85;   
             xCuadro = (anchoReal - anchoCuadro) / 2;
             yCuadro = (altoReal - altoCuadro) / 2;
             
@@ -243,7 +186,6 @@
 
             crearEscenarioInicial();
             
-            // Avisar al monitor que debe resetearse para coincidir
             db.ref('espejo/comandos').set({ accion: 'reset', ts: Date.now() });
         }
 
@@ -261,11 +203,9 @@
             ctxAmarillo.globalCompositeOperation = 'destination-out';
             
             confetiLanzado = false;
-            barraProgreso.style.width = '0%';
-            textoProgreso.innerText = '0%';
         }
 
-        // --- CÁLCULO DE PROGRESO ---
+        // --- CÁLCULO DE PROGRESO INVISIBLE ---
         function calcularProgreso() {
             if (anchoCuadro === 0 || altoCuadro === 0) return;
 
@@ -275,9 +215,7 @@
             const totalPixeles = anchoCuadro * altoCuadro;
 
             for (let i = 0; i < data.length; i += 4) {
-                if (data[i + 3] > 30) { 
-                    pixelesVisibles++;
-                }
+                if (data[i + 3] > 30) pixelesVisibles++;
             }
 
             let porcentaje = 100 - ((pixelesVisibles / totalPixeles) * 100);
@@ -288,17 +226,15 @@
             }
 
             const porcentajeRedondeado = Math.floor(porcentaje);
-            barraProgreso.style.width = porcentajeRedondeado + '%';
-            textoProgreso.innerText = porcentajeRedondeado + '%';
 
             if (porcentajeRedondeado === 100 && !confetiLanzado) {
                 confetiLanzado = true;
-                dispararConfeti();
+                dispararConfeti(); // Confeti local de celebración en la tableta
             } else if (porcentajeRedondeado < 90) {
                 confetiLanzado = false; 
             }
 
-            // Enviar estado de UI al monitor remoto
+            // Enviar datos al TV silenciosamente
             db.ref('espejo/ui').set({ progreso: porcentajeRedondeado, confeti: confetiLanzado });
         }
 
@@ -310,10 +246,7 @@
             (function frame() {
                 confetti({ particleCount: 4, angle: 60, spread: 55, origin: { x: 0 }, colors: colores });
                 confetti({ particleCount: 4, angle: 120, spread: 55, origin: { x: 1 }, colors: colores });
-
-                if (Date.now() < fin) {
-                    requestAnimationFrame(frame);
-                }
+                if (Date.now() < fin) requestAnimationFrame(frame);
             }());
         }
 
@@ -323,12 +256,10 @@
             restaurandoAmarillo = false;
             ctxAmarillo.globalCompositeOperation = 'destination-out';
             
-            // Avisar al monitor que se detiene la restauración
             db.ref('espejo/comandos').set({ accion: 'detener_restauracion', ts: Date.now() });
 
             temporizadorInactividad = setTimeout(() => {
                 restaurandoAmarillo = true;
-                // Avisar al monitor que inicie la restauración
                 db.ref('espejo/comandos').set({ accion: 'restaurar', ts: Date.now() });
                 animarRestauracionAmarillo();
             }, 5000);
@@ -336,11 +267,9 @@
 
         function animarRestauracionAmarillo() {
             if (!restaurandoAmarillo) return; 
-
             ctxAmarillo.globalCompositeOperation = 'source-over';
             ctxAmarillo.fillStyle = 'rgba(255, 234, 167, 0.05)'; 
             ctxAmarillo.fillRect(xCuadro, yCuadro, anchoCuadro, altoCuadro);
-
             requestAnimationFrame(animarRestauracionAmarillo);
         }
 
@@ -365,12 +294,9 @@
             
             const { x, y } = obtenerCoordenadas(e);
 
-            ctxAmarillo.beginPath();
-            ctxAmarillo.moveTo(x, y);
-            ctxMorado.beginPath();
-            ctxMorado.moveTo(x, y);
+            ctxAmarillo.beginPath(); ctxAmarillo.moveTo(x, y);
+            ctxMorado.beginPath(); ctxMorado.moveTo(x, y);
 
-            // Normalizar coordenadas (0 a 1) para enviarlas y que el TV las escale
             const normX = x / canvasMorado.width;
             const normY = y / canvasMorado.height;
             db.ref('espejo/trazos').push({ t: 'start', x: normX, y: normY });
@@ -380,8 +306,7 @@
 
         function detenerTrazo() {
             dibujando = false;
-            ctxAmarillo.beginPath();
-            ctxMorado.beginPath();
+            ctxAmarillo.beginPath(); ctxMorado.beginPath();
         }
 
         function pintar(e) {
@@ -391,35 +316,25 @@
 
             const { x, y } = obtenerCoordenadas(e);
 
-            // Borrar amarillo localmente
             ctxAmarillo.lineWidth = grosorPincel;
-            ctxAmarillo.lineTo(x, y);
-            ctxAmarillo.stroke();
-            ctxAmarillo.beginPath();
-            ctxAmarillo.moveTo(x, y);
+            ctxAmarillo.lineTo(x, y); ctxAmarillo.stroke();
+            ctxAmarillo.beginPath(); ctxAmarillo.moveTo(x, y);
 
-            // Pintar morado localmente
             ctxMorado.globalCompositeOperation = 'source-over';
             ctxMorado.lineWidth = grosorPincel;
             ctxMorado.strokeStyle = '#9b59b6';
-            ctxMorado.lineTo(x, y);
-            ctxMorado.stroke();
-            ctxMorado.beginPath();
-            ctxMorado.moveTo(x, y);
+            ctxMorado.lineTo(x, y); ctxMorado.stroke();
+            ctxMorado.beginPath(); ctxMorado.moveTo(x, y);
 
-            // Enviar coordenadas de movimiento normalizadas
             const normX = x / canvasMorado.width;
             const normY = y / canvasMorado.height;
             db.ref('espejo/trazos').push({ t: 'move', x: normX, y: normY });
         }
 
-        // Eventos para mouse
         canvasMorado.addEventListener('mousedown', iniciarTrazo);
         canvasMorado.addEventListener('mousemove', pintar);
         canvasMorado.addEventListener('mouseup', detenerTrazo);
         canvasMorado.addEventListener('mouseout', detenerTrazo);
-
-        // Eventos para touch (Tableta)
         canvasMorado.addEventListener('touchstart', iniciarTrazo, { passive: false });
         canvasMorado.addEventListener('touchmove', pintar, { passive: false });
         canvasMorado.addEventListener('touchend', detenerTrazo);
@@ -432,7 +347,6 @@
             ctxMorado.fillRect(0, 0, canvasMorado.width, canvasMorado.height);
             requestAnimationFrame(desvanecerMorado);
         }
-
     </script>
 </body>
 </html>
