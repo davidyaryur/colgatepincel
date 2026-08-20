@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Borrador morado - MONITOR (TV) OPTIMIZADO</title>
+    <title>Borrador morado</title>
     
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -199,7 +199,6 @@
             xCuadro = (anchoReal - anchoCuadro) / 2;
             yCuadro = (altoReal - altoCuadro) / 2;
             
-            // Grosor ajustado al 30% igual que la tableta
             grosorPincel = Math.min(anchoReal, altoReal) * 0.30; 
 
             crearEscenarioInicial();
@@ -280,7 +279,6 @@
                 ctxMorado.clearRect(0, 0, canvasMorado.width, canvasMorado.height);
             } else if (data.accion === 'restaurar') {
                 restaurandoAmarillo = true;
-                // LIMPIA LOS TRAZOS MORADOS VIEJOS EN EL TV
                 ctxMorado.clearRect(0, 0, canvasMorado.width, canvasMorado.height);
                 animarRestauracionAmarillo();
             } else if (data.accion === 'detener_restauracion') {
@@ -296,18 +294,17 @@
             barraProgreso.style.width = data.progreso + '%';
             textoProgreso.innerText = data.progreso + '%';
 
-            if (data.confeti && !confetiLanzadoLocal) {
+            // --- AQUÍ ESTÁ EL CANDADO LÓGICO ---
+            // Solo lanzamos confeti si data.confeti es true Y NO estamos restaurando el amarillo
+            if (data.confeti && !confetiLanzadoLocal && !restaurandoAmarillo) {
                 confetiLanzadoLocal = true;
                 const duracion = 1500; 
                 const fin = Date.now() + duracion;
                 const colores = ['#9b59b6', '#8e44ad', '#ffeaa7', '#ffffff'];
 
                 (function frame() {
-                    // Laterales: Menos cantidad, más grandes y un poco más abajo (y: 0.7)
                     confetti({ particleCount: 2, angle: 60, spread: 55, origin: { x: 0, y: 0.7 }, colors: colores, scalar: 3.5, zIndex: 2000 });
                     confetti({ particleCount: 2, angle: 120, spread: 55, origin: { x: 1, y: 0.7 }, colors: colores, scalar: 3.5, zIndex: 2000 });
-                    
-                    // Central: Ángulo 90 (hacia arriba), dispersión amplia y aún más grandes (scalar: 4.0)
                     confetti({ particleCount: 2, angle: 90, spread: 100, origin: { x: 0.5, y: 0.6 }, colors: colores, scalar: 4.0, zIndex: 2000 });
                     
                     if (Date.now() < fin) requestAnimationFrame(frame);
