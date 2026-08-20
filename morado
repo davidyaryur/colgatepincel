@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Borrador Interactivo (Corregido)</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #ffffff;
+            color: #333;
+            font-family: sans-serif;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+            min-height: 100vh;
+            justify-content: center;
+        }
+
+        .contenedor-ui {
+            display: flex;
+            width: 100%;
+            max-width: 800px;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .fondo-barra {
+            flex-grow: 1;
+            background: #ecf0f1;
+            border-radius: 12px;
+            height: 24px;
+            border: 2px solid #bdc3c7;
+            overflow: hidden;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        #barra-progreso {
+            width: 0%;
+            height: 100%;
+            background-color: #9b59b6; 
+            transition: width 0.2s ease-out;
+        }
+
+        #texto-progreso {
+            font-weight: bold;
+            font-size: 1.2rem;
+            min-width: 55px;
+            text-align: right;
+            color: #8e44ad;
+        }
+
+        .contenedor-lienzo {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            aspect-ratio: 8 / 5;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            overflow: hidden;
+            cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cpath d='M8 8 L28 28 C32 32 26 36 22 32 L2 12 Z' fill='%239b59b6' stroke='%238e44ad' stroke-width='1.5'/%3E%3Cpolygon points='0,0 10,3 3,10' fill='%23ecf0f1' stroke='%23bdc3c7' stroke-width='1'/%3E%3C/svg%3E") 0 0, crosshair;
+            touch-action: none;
+        }
+
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        #canvas-amarillo {
+            background-color: #ffffff; 
+            pointer-events: none;
+        }
+
+        #canvas-morado {
+            background-color: transparent;
+            pointer-events: auto; 
+        }
+    </style>
+</head>
+<body>
+
+    <div class="contenedor-ui">
+        <div class="fondo-barra">
+            <div id="barra-progreso"></div>
+        </div>
+        <span id="texto-progreso">0%</span>
+    </div>
+
+    <div class="contenedor-lienzo">
+        <canvas id="canvas-amarillo"></canvas>
+        <canvas id="canvas-morado"></canvas>
+    </div>
+
+    <script>
+        const canvasAmarillo = document.getElementById('canvas-amarillo');
+        const ctxAmarillo = canvasAmarillo.getContext('2d', { willReadFrequently: true });
+        
+        const canvasMorado = document.getElementById('canvas-morado');
+        const ctxMorado = canvasMorado.getContext('2d');
+        
+        const barraProgreso = document.getElementById('barra-progreso');
+        const textoProgreso = document.getElementById('texto-progreso');
+
+        let dibujando = false;
+        let temporizadorInactividad;
+        let restaurandoAmarillo = false;
+        let confetiLanzado = false; 
+        
+        let anchoCuadro, altoCuadro, xCuadro, yCuadro, grosorPincel;
+        const colorAmarillo = '#ffeaa7'; 
+
+        // --- SISTEMA RESPONSIVE ---
+        
+        function redimensionarYConfigurar() {
+            const contenedor = canvasAmarillo.parentElement;
+            const anchoReal = contenedor.clientWidth;
+            const altoReal = contenedor.clientHeight;
+
+            canvasAmarillo.width = anchoReal;
+            canvasAmarillo.height = altoReal;
+            canvasMorado.width = anchoReal;
+            canvasMorado.height = altoReal;
+
+            [ctxAmarillo, ctxMorado].forEach(ctx => {
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+            });
+
+            anchoCuadro = anchoReal * 0.6; 
+            altoCuadro = altoReal * 0.6;   
+            xCuadro = (anchoReal - anchoCuadro) / 2;
+            yCuadro = (altoReal - altoCuadro) / 2;
+            
+            grosorPincel = anchoReal * 0.12; 
+
+            crearEscenarioInicial();
+        }
+
+        window.addEventListener('resize', () => {
+            clearTimeout(window.resizeTimer);
+            window.resizeTimer = setTimeout(redimensionarYConfigurar, 100);
+        });
+
+        function crearEscenarioInicial() {
+            ctxAmarillo.globalCompositeOperation = 'source-over';
+            ctxAmarillo.fillStyle = colorAmarillo;
+            ctxAmarillo.fillRect(xCuadro, yCuadro, anchoCuadro, altoCuadro);
+            ctxAmarillo.globalCompositeOperation = 'destination-out';
+            
+            confetiLanzado = false;
+            barraProgreso.style.width = '0%';
+            textoProgreso.innerText = '0%';
+        }
+
+        // --- CÁLCULO DE PROGRESO (CORREGIDO Y ROBUSTO) ---
+        
+        function calcularProgreso() {
+            if (anchoCuadro === 0 || altoCuadro === 0) return;
+
+            const imageData = ctxAmarillo.getImageData(xCuadro, yCuadro, anchoCuadro, altoCuadro);
+            const data = imageData.data;
+            let pixelesVisibles = 0;
+            const totalPixeles = anchoCuadro * altoCuadro;
+
+            // Contamos solo los píxeles que aún tienen un color amarillo visible (opacidad alta)
+            for (let i = 0; i < data.length; i += 4) {
+                if (data[i + 3] > 30) { 
+                    pixelesVisibles++;
+                }
+            }
+
+            let porcentaje = 100 - ((pixelesVisibles / totalPixeles) * 100);
+
+            // EL ARREGLO MÁGICO: Si llega al 99%, forzamos la limpieza total 
+            // de esos micropíxeles restantes para asegurar que no quede NADA.
+            if (porcentaje >= 99 && porcentaje < 100) {
+                ctxAmarillo.clearRect(xCuadro, yCuadro, anchoCuadro, altoCuadro);
+                porcentaje = 100;
+            }
+
+            const porcentajeRedondeado = Math.floor(porcentaje);
+            barraProgreso.style.width = porcentajeRedondeado + '%';
+            textoProgreso.innerText = porcentajeRedondeado + '%';
+
+            if (porcentajeRedondeado === 100 && !confetiLanzado) {
+                confetiLanzado = true;
+                dispararConfeti();
+            } else if (porcentajeRedondeado < 90) {
+                confetiLanzado = false; 
+            }
+        }
+
+        setInterval(calcularProgreso, 250);
+
+        function dispararConfeti() {
+            const duracion = 3 * 1000;
+            const fin = Date.now() + duracion;
+            const colores = ['#9b59b6', '#8e44ad', '#ffeaa7', '#ffffff'];
+
+            (function frame() {
+                confetti({ particleCount: 4, angle: 60, spread: 55, origin: { x: 0 }, colors: colores });
+                confetti({ particleCount: 4, angle: 120, spread: 55, origin: { x: 1 }, colors: colores });
+
+                if (Date.now() < fin) {
+                    requestAnimationFrame(frame);
+                }
+            }());
+        }
+
+        // --- GESTIÓN DE INACTIVIDAD ---
+
+        function reiniciarTemporizador() {
+            clearTimeout(temporizadorInactividad);
+            restaurandoAmarillo = false;
+            ctxAmarillo.globalCompositeOperation = 'destination-out';
+
+            temporizadorInactividad = setTimeout(() => {
+                restaurandoAmarillo = true;
+                animarRestauracionAmarillo();
+            }, 5000);
+        }
+
+        function animarRestauracionAmarillo() {
+            if (!restaurandoAmarillo) return; 
+
+            ctxAmarillo.globalCompositeOperation = 'source-over';
+            ctxAmarillo.fillStyle = 'rgba(255, 234, 167, 0.05)'; 
+            ctxAmarillo.fillRect(xCuadro, yCuadro, anchoCuadro, altoCuadro);
+
+            requestAnimationFrame(animarRestauracionAmarillo);
+        }
+
+        // --- LÓGICA DE DIBUJO ---
+
+        function obtenerCoordenadas(e) {
+            const rect = canvasMorado.getBoundingClientRect();
+            let clienteX = e.clientX;
+            let clienteY = e.clientY;
+
+            if (e.touches && e.touches.length > 0) {
+                clienteX = e.touches[0].clientX;
+                clienteY = e.touches[0].clientY;
+            }
+
+            return { x: clienteX - rect.left, y: clienteY - rect.top };
+        }
+
+        function iniciarTrazo(e) {
+            if (e.type === 'touchstart') e.preventDefault(); 
+            dibujando = true;
+            reiniciarTemporizador(); 
+            
+            const { x, y } = obtenerCoordenadas(e);
+
+            ctxAmarillo.beginPath();
+            ctxAmarillo.moveTo(x, y);
+            ctxMorado.beginPath();
+            ctxMorado.moveTo(x, y);
+
+            pintar(e);
+        }
+
+        function detenerTrazo() {
+            dibujando = false;
+            ctxAmarillo.beginPath();
+            ctxMorado.beginPath();
+        }
+
+        function pintar(e) {
+            if (!dibujando) return;
+            if (e.type === 'touchmove') e.preventDefault(); 
+            reiniciarTemporizador(); 
+
+            const { x, y } = obtenerCoordenadas(e);
+
+            // Borrar amarillo
+            ctxAmarillo.lineWidth = grosorPincel;
+            ctxAmarillo.lineTo(x, y);
+            ctxAmarillo.stroke();
+            ctxAmarillo.beginPath();
+            ctxAmarillo.moveTo(x, y);
+
+            // Pintar morado
+            ctxMorado.globalCompositeOperation = 'source-over';
+            ctxMorado.lineWidth = grosorPincel;
+            ctxMorado.strokeStyle = '#9b59b6';
+            ctxMorado.lineTo(x, y);
+            ctxMorado.stroke();
+            ctxMorado.beginPath();
+            ctxMorado.moveTo(x, y);
+        }
+
+        canvasMorado.addEventListener('mousedown', iniciarTrazo);
+        canvasMorado.addEventListener('mousemove', pintar);
+        canvasMorado.addEventListener('mouseup', detenerTrazo);
+        canvasMorado.addEventListener('mouseout', detenerTrazo);
+
+        canvasMorado.addEventListener('touchstart', iniciarTrazo, { passive: false });
+        canvasMorado.addEventListener('touchmove', pintar, { passive: false });
+        canvasMorado.addEventListener('touchend', detenerTrazo);
+        canvasMorado.addEventListener('touchcancel', detenerTrazo);
+
+        function desvanecerMorado() {
+            ctxMorado.globalCompositeOperation = 'destination-out';
+            ctxMorado.fillStyle = 'rgba(0, 0, 0, 0.04)';
+            ctxMorado.fillRect(0, 0, canvasMorado.width, canvasMorado.height);
+            requestAnimationFrame(desvanecerMorado);
+        }
+
+        // Inicializar
+        redimensionarYConfigurar();
+        desvanecerMorado();
+        reiniciarTemporizador();
+
+    </script>
+</body>
+</html>
