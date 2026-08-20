@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Borrador morado - MONITOR (TV)</title>
+    <title>Borrador morado - MONITOR (TV) OPTIMIZADO</title>
     
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <!-- SDKs de Firebase -->
@@ -19,7 +19,7 @@
             color: #333;
             font-family: sans-serif;
             margin: 0;
-            padding: 20px;
+            padding: 40px; /* Mayor padding para respirar en la TV */
             box-sizing: border-box;
             height: 100vh;
             overflow: hidden;
@@ -42,15 +42,15 @@
         #boton-empezar {
             background-color: #9b59b6;
             color: white;
-            font-size: 2rem;
+            font-size: 3.5rem; /* Botón masivo para el TV */
             font-weight: bold;
-            padding: 15px 50px;
+            padding: 30px 80px;
             border: none;
-            border-radius: 50px;
+            border-radius: 60px;
             cursor: pointer;
-            box-shadow: 0 6px 20px rgba(155, 89, 182, 0.4);
+            box-shadow: 0 10px 30px rgba(155, 89, 182, 0.4);
             transition: transform 0.2s ease, background-color 0.2s ease;
-            letter-spacing: 2px;
+            letter-spacing: 4px;
         }
 
         #boton-empezar:hover {
@@ -60,22 +60,22 @@
 
         .contenedor-ui {
             display: flex;
-            width: 100%;
-            max-width: 800px;
+            width: 95%; /* Ocupa casi todo el ancho de la TV */
+            max-width: 1600px; /* Tope expandido para 1080p/4K */
             align-items: center;
-            gap: 15px;
-            margin-bottom: 20px;
+            gap: 30px;
+            margin-bottom: 40px; /* Más separación del lienzo */
             flex-shrink: 0;
         }
 
         .fondo-barra {
             flex-grow: 1;
             background: #ecf0f1;
-            border-radius: 12px;
-            height: 24px;
-            border: 2px solid #bdc3c7;
+            border-radius: 25px; /* Bordes más redondeados */
+            height: 50px; /* BARRA MUCHO MÁS GRUESA */
+            border: 4px solid #bdc3c7;
             overflow: hidden;
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: inset 0 4px 8px rgba(0,0,0,0.1);
         }
 
         #barra-progreso {
@@ -87,8 +87,8 @@
 
         #texto-progreso {
             font-weight: bold;
-            font-size: 1.2rem;
-            min-width: 55px;
+            font-size: 2.8rem; /* TEXTO DE PORCENTAJE GIGANTE */
+            min-width: 120px;
             text-align: right;
             color: #8e44ad;
         }
@@ -96,15 +96,14 @@
         .contenedor-lienzo {
             position: relative;
             width: 100%;
-            max-width: 800px;
+            max-width: 1600px;
             flex-grow: 1;
             min-height: 0;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            border: 4px solid #e0e0e0; /* Borde de lienzo más grueso */
+            border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.08);
             overflow: hidden;
-            /* Clave para el monitor: Desactivamos eventos de puntero para que no se pueda dibujar aquí */
-            pointer-events: none; 
+            pointer-events: none; /* Bloquea interacciones locales */
         }
 
         canvas {
@@ -115,19 +114,14 @@
             height: 100%;
         }
 
-        #canvas-amarillo {
-            background-color: #ffffff; 
-        }
-
-        #canvas-morado {
-            background-color: transparent;
-        }
+        #canvas-amarillo { background-color: #ffffff; }
+        #canvas-morado { background-color: transparent; }
     </style>
 </head>
 <body>
 
     <div id="pantalla-inicio">
-        <button id="boton-empezar">PANTALLA COMPLETA</button>
+        <button id="boton-empezar">INICIAR MONITOR</button>
     </div>
 
     <div class="contenedor-ui">
@@ -158,16 +152,12 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // --- REFERENCIAS DEL DOM Y VARIABLES ---
         const canvasAmarillo = document.getElementById('canvas-amarillo');
         const ctxAmarillo = canvasAmarillo.getContext('2d', { willReadFrequently: true });
-        
         const canvasMorado = document.getElementById('canvas-morado');
         const ctxMorado = canvasMorado.getContext('2d');
-        
         const barraProgreso = document.getElementById('barra-progreso');
         const textoProgreso = document.getElementById('texto-progreso');
-
         const pantallaInicio = document.getElementById('pantalla-inicio');
         const botonEmpezar = document.getElementById('boton-empezar');
 
@@ -181,12 +171,6 @@
             const elemento = document.documentElement;
             if (elemento.requestFullscreen) {
                 elemento.requestFullscreen().catch(err => console.log("Error pantalla completa:", err));
-            } else if (elemento.mozRequestFullScreen) {
-                elemento.mozRequestFullScreen();
-            } else if (elemento.webkitRequestFullscreen) {
-                elemento.webkitRequestFullscreen();
-            } else if (elemento.msRequestFullscreen) {
-                elemento.msRequestFullscreen();
             }
 
             pantallaInicio.style.display = 'none';
@@ -197,7 +181,7 @@
             }, 300);
         });
 
-        // --- SISTEMA RESPONSIVE ---
+        // --- SISTEMA RESPONSIVE OPTIMIZADO PARA TV ---
         function redimensionarYConfigurar() {
             const contenedor = canvasAmarillo.parentElement;
             const anchoReal = contenedor.clientWidth;
@@ -213,12 +197,12 @@
                 ctx.lineJoin = 'round';
             });
 
-            anchoCuadro = anchoReal * 0.6; 
-            altoCuadro = altoReal * 0.6;   
+            // Área útil aumentada al 85% para pantallas apaisadas
+            anchoCuadro = anchoReal * 0.85; 
+            altoCuadro = altoReal * 0.85;   
             xCuadro = (anchoReal - anchoCuadro) / 2;
             yCuadro = (altoReal - altoCuadro) / 2;
             
-            // El grosor se calcula localmente según la pantalla del monitor
             grosorPincel = Math.min(anchoReal, altoReal) * 0.15; 
 
             crearEscenarioInicial();
@@ -242,7 +226,7 @@
             textoProgreso.innerText = '0%';
         }
 
-        // --- EFECTOS VISUALES (Animaciones autónomas) ---
+        // --- EFECTOS VISUALES ---
         function animarRestauracionAmarillo() {
             if (!restaurandoAmarillo) return; 
             ctxAmarillo.globalCompositeOperation = 'source-over';
@@ -262,12 +246,10 @@
         // RECEPCIÓN DE DATOS EN TIEMPO REAL DESDE FIREBASE
         // =========================================================
 
-        // 1. Escuchar los trazos (Dibujo)
         db.ref('espejo/trazos').on('child_added', (snapshot) => {
             const data = snapshot.val();
             if (!data) return;
 
-            // Des-normalizar: multiplicar por el tamaño del canvas del monitor
             const px = data.x * canvasMorado.width;
             const py = data.y * canvasMorado.height;
 
@@ -277,14 +259,12 @@
                 ctxMorado.beginPath();
                 ctxMorado.moveTo(px, py);
             } else if (data.t === 'move') {
-                // Borrar amarillo localmente
                 ctxAmarillo.lineWidth = grosorPincel;
                 ctxAmarillo.lineTo(px, py);
                 ctxAmarillo.stroke();
                 ctxAmarillo.beginPath();
                 ctxAmarillo.moveTo(px, py);
 
-                // Pintar morado localmente
                 ctxMorado.globalCompositeOperation = 'source-over';
                 ctxMorado.lineWidth = grosorPincel;
                 ctxMorado.strokeStyle = '#9b59b6';
@@ -295,7 +275,6 @@
             }
         });
 
-        // 2. Escuchar comandos (Reset de pantalla, inactividad)
         db.ref('espejo/comandos').on('value', (snapshot) => {
             const data = snapshot.val();
             if (!data) return;
@@ -312,7 +291,6 @@
             }
         });
 
-        // 3. Escuchar la Interfaz (Barra de progreso y confeti)
         db.ref('espejo/ui').on('value', (snapshot) => {
             const data = snapshot.val();
             if (!data) return;
@@ -322,20 +300,20 @@
 
             if (data.confeti && !confetiLanzadoLocal) {
                 confetiLanzadoLocal = true;
-                const duracion = 1000;
+                const duracion = 1200; // Un poco más de duración
                 const fin = Date.now() + duracion;
                 const colores = ['#9b59b6', '#8e44ad', '#ffeaa7', '#ffffff'];
 
                 (function frame() {
-                    confetti({ particleCount: 4, angle: 60, spread: 55, origin: { x: 0 }, colors: colores });
-                    confetti({ particleCount: 4, angle: 120, spread: 55, origin: { x: 1 }, colors: colores });
+                    // scalar: 2.5 HACE QUE EL CONFETI SEA GIGANTE PARA EL TV
+                    confetti({ particleCount: 6, angle: 60, spread: 70, origin: { x: 0 }, colors: colores, scalar: 2.5, zIndex: 2000 });
+                    confetti({ particleCount: 6, angle: 120, spread: 70, origin: { x: 1 }, colors: colores, scalar: 2.5, zIndex: 2000 });
                     if (Date.now() < fin) requestAnimationFrame(frame);
                 }());
             } else if (!data.confeti) {
                 confetiLanzadoLocal = false;
             }
         });
-
     </script>
 </body>
 </html>
