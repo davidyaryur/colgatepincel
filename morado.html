@@ -3,87 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Borrador morado - TABLETA (Simplificada)</title>
+    <title>Borrador morado</title>
     
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-    <!-- SDKs de Firebase -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
     <style>
         body {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            background-color: #ffffff;
-            color: #333;
-            font-family: sans-serif;
-            margin: 0;
-            padding: 20px;
-            box-sizing: border-box;
-            height: 100vh;
-            height: 100dvh;
-            overflow: hidden;
-            justify-content: center;
+            display: flex; flex-direction: column; align-items: center; background-color: #ffffff;
+            color: #333; font-family: sans-serif; margin: 0; padding: 20px; box-sizing: border-box;
+            height: 100vh; height: 100dvh; overflow: hidden; justify-content: center;
         }
-
         #pantalla-inicio {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: #ffffff;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: #ffffff; display: flex; justify-content: center;
+            align-items: center; z-index: 1000;
         }
-
         #boton-empezar {
-            background-color: #9b59b6;
-            color: white;
-            font-size: 2.5rem;
-            font-weight: bold;
-            padding: 20px 60px;
-            border: none;
-            border-radius: 50px;
-            cursor: pointer;
-            box-shadow: 0 6px 20px rgba(155, 89, 182, 0.4);
-            transition: transform 0.2s ease, background-color 0.2s ease;
-            letter-spacing: 2px;
+            background-color: #9b59b6; color: white; font-size: 2.5rem;
+            font-weight: bold; padding: 20px 60px; border: none; border-radius: 50px;
+            cursor: pointer; box-shadow: 0 6px 20px rgba(155, 89, 182, 0.4);
+            transition: transform 0.2s ease, background-color 0.2s ease; letter-spacing: 2px;
         }
-
-        #boton-empezar:hover {
-            background-color: #8e44ad;
-            transform: scale(1.05);
-        }
-
-        #boton-empezar:active {
-            transform: scale(0.95);
-        }
-
+        #boton-empezar:hover { background-color: #8e44ad; transform: scale(1.05); }
+        #boton-empezar:active { transform: scale(0.95); }
+        
         .contenedor-lienzo {
-            position: relative;
-            width: 100%;
-            max-width: 1600px;
-            flex-grow: 1; /* Ocupa todo el espacio ahora que no hay barra */
-            border: 2px solid #e0e0e0;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-            overflow: hidden;
+            position: relative; width: 100%; max-width: 1600px; flex-grow: 1;
+            border: 2px solid #e0e0e0; border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05); overflow: hidden;
             cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cpath d='M8 8 L28 28 C32 32 26 36 22 32 L2 12 Z' fill='%239b59b6' stroke='%238e44ad' stroke-width='1.5'/%3E%3Cpolygon points='0,0 10,3 3,10' fill='%23ecf0f1' stroke='%23bdc3c7' stroke-width='1'/%3E%3C/svg%3E") 0 0, crosshair;
             touch-action: none;
         }
-
-        canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-        }
-
+        canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
         #canvas-amarillo { background-color: #ffffff; pointer-events: none; }
         #canvas-morado { background-color: transparent; pointer-events: auto; }
     </style>
@@ -94,14 +47,12 @@
         <button id="boton-empezar">EMPEZAR</button>
     </div>
 
-    <!-- Se eliminó el contenedor de la UI para dejar el lienzo al 100% -->
     <div class="contenedor-lienzo">
         <canvas id="canvas-amarillo"></canvas>
         <canvas id="canvas-morado"></canvas>
     </div>
 
     <script>
-        // --- CONFIGURACIÓN DE FIREBASE ---
         const firebaseConfig = {
             apiKey: "AIzaSyD4kmlHrIcq6lBwsjDNXfCMBTzzfsBzDXM",
             authDomain: "borradormagico-4c34e.firebaseapp.com",
@@ -116,13 +67,10 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // --- REFERENCIAS DEL DOM Y VARIABLES ---
         const canvasAmarillo = document.getElementById('canvas-amarillo');
         const ctxAmarillo = canvasAmarillo.getContext('2d', { willReadFrequently: true });
-        
         const canvasMorado = document.getElementById('canvas-morado');
         const ctxMorado = canvasMorado.getContext('2d');
-        
         const pantallaInicio = document.getElementById('pantalla-inicio');
         const botonEmpezar = document.getElementById('boton-empezar');
 
@@ -135,80 +83,51 @@
         let anchoCuadro, altoCuadro, xCuadro, yCuadro, grosorPincel;
         const colorAmarillo = '#ffeaa7'; 
 
-        // --- SISTEMA DE PANTALLA COMPLETA E INICIO ---
         botonEmpezar.addEventListener('click', () => {
             const elemento = document.documentElement;
-            if (elemento.requestFullscreen) {
-                elemento.requestFullscreen().catch(err => console.log("No se pudo entrar a pantalla completa:", err));
-            } else if (elemento.webkitRequestFullscreen) {
-                elemento.webkitRequestFullscreen();
-            }
-
+            if (elemento.requestFullscreen) elemento.requestFullscreen().catch(()=>{});
             pantallaInicio.style.display = 'none';
 
             setTimeout(() => {
                 redimensionarYConfigurar();
                 desvanecerMorado();
                 reiniciarTemporizador();
-                
                 db.ref('espejo/trazos').remove();
                 db.ref('espejo/ui').set({ progreso: 0, confeti: false });
-                
-                if (!intervaloProgreso) {
-                    intervaloProgreso = setInterval(calcularProgreso, 250);
-                }
+                if (!intervaloProgreso) intervaloProgreso = setInterval(calcularProgreso, 250);
             }, 300);
         });
 
-        // --- SISTEMA RESPONSIVE ---
         function redimensionarYConfigurar() {
             const contenedor = canvasAmarillo.parentElement;
             const anchoReal = contenedor.clientWidth;
             const altoReal = contenedor.clientHeight;
 
-            canvasAmarillo.width = anchoReal;
-            canvasAmarillo.height = altoReal;
-            canvasMorado.width = anchoReal;
-            canvasMorado.height = altoReal;
+            canvasAmarillo.width = anchoReal; canvasAmarillo.height = altoReal;
+            canvasMorado.width = anchoReal; canvasMorado.height = altoReal;
 
             [ctxAmarillo, ctxMorado].forEach(ctx => {
-                ctx.lineCap = 'round';
-                ctx.lineJoin = 'round';
+                ctx.lineCap = 'round'; ctx.lineJoin = 'round';
             });
 
-            // Área ampliada para mayor comodidad al dibujar
-            anchoCuadro = anchoReal * 0.85; 
-            altoCuadro = altoReal * 0.85;   
-            xCuadro = (anchoReal - anchoCuadro) / 2;
-            yCuadro = (altoReal - altoCuadro) / 2;
-            
+            anchoCuadro = anchoReal * 0.85; altoCuadro = altoReal * 0.85;   
+            xCuadro = (anchoReal - anchoCuadro) / 2; yCuadro = (altoReal - altoCuadro) / 2;
             grosorPincel = Math.min(anchoReal, altoReal) * 0.30; 
 
             crearEscenarioInicial();
-            
             db.ref('espejo/comandos').set({ accion: 'reset', ts: Date.now() });
         }
-
-        window.addEventListener('resize', () => {
-            if (pantallaInicio.style.display === 'none') {
-                clearTimeout(window.resizeTimer);
-                window.resizeTimer = setTimeout(redimensionarYConfigurar, 100);
-            }
-        });
 
         function crearEscenarioInicial() {
             ctxAmarillo.globalCompositeOperation = 'source-over';
             ctxAmarillo.fillStyle = colorAmarillo;
             ctxAmarillo.fillRect(xCuadro, yCuadro, anchoCuadro, altoCuadro);
             ctxAmarillo.globalCompositeOperation = 'destination-out';
-            
             confetiLanzado = false;
         }
 
-        // --- CÁLCULO DE PROGRESO INVISIBLE ---
         function calcularProgreso() {
             if (anchoCuadro === 0 || altoCuadro === 0) return;
-
             const imageData = ctxAmarillo.getImageData(xCuadro, yCuadro, anchoCuadro, altoCuadro);
             const data = imageData.data;
             let pixelesVisibles = 0;
@@ -219,30 +138,23 @@
             }
 
             let porcentaje = 100 - ((pixelesVisibles / totalPixeles) * 100);
-
             if (porcentaje >= 99 && porcentaje < 100) {
                 ctxAmarillo.clearRect(xCuadro, yCuadro, anchoCuadro, altoCuadro);
                 porcentaje = 100;
             }
 
-            const porcentajeRedondeado = Math.floor(porcentaje);
-
-            if (porcentajeRedondeado === 100 && !confetiLanzado) {
-                confetiLanzado = true;
-                dispararConfeti(); // Confeti local de celebración en la tableta
-            } else if (porcentajeRedondeado < 90) {
+            const pRedondeado = Math.floor(porcentaje);
+            if (pRedondeado === 100 && !confetiLanzado) {
+                confetiLanzado = true; dispararConfeti(); 
+            } else if (pRedondeado < 90) {
                 confetiLanzado = false; 
             }
-
-            // Enviar datos al TV silenciosamente
-            db.ref('espejo/ui').set({ progreso: porcentajeRedondeado, confeti: confetiLanzado });
+            db.ref('espejo/ui').set({ progreso: pRedondeado, confeti: confetiLanzado });
         }
 
         function dispararConfeti() {
-            const duracion = 3000;
-            const fin = Date.now() + duracion;
+            const fin = Date.now() + 1000;
             const colores = ['#9b59b6', '#8e44ad', '#ffeaa7', '#ffffff'];
-
             (function frame() {
                 confetti({ particleCount: 4, angle: 60, spread: 55, origin: { x: 0 }, colors: colores });
                 confetti({ particleCount: 4, angle: 120, spread: 55, origin: { x: 1 }, colors: colores });
@@ -250,17 +162,27 @@
             }());
         }
 
-        // --- GESTIÓN DE INACTIVIDAD ---
         function reiniciarTemporizador() {
             clearTimeout(temporizadorInactividad);
             restaurandoAmarillo = false;
             ctxAmarillo.globalCompositeOperation = 'destination-out';
-            
             db.ref('espejo/comandos').set({ accion: 'detener_restauracion', ts: Date.now() });
 
+            // --- AQUÍ ESTÁN LOS CAMBIOS PRINCIPALES ---
             temporizadorInactividad = setTimeout(() => {
                 restaurandoAmarillo = true;
                 db.ref('espejo/comandos').set({ accion: 'restaurar', ts: Date.now() });
+                
+                // 1. Borramos el historial de trazos en Firebase para no saturarlo
+                db.ref('espejo/trazos').remove();
+                
+                // 2. Reiniciamos el progreso y el confeti a 0
+                db.ref('espejo/ui').set({ progreso: 0, confeti: false });
+                confetiLanzado = false;
+                
+                // 3. Limpiamos los trazos morados locales de la tableta
+                ctxMorado.clearRect(0, 0, canvasMorado.width, canvasMorado.height);
+
                 animarRestauracionAmarillo();
             }, 5000);
         }
@@ -273,74 +195,48 @@
             requestAnimationFrame(animarRestauracionAmarillo);
         }
 
-        // --- LÓGICA DE DIBUJO Y ENVÍO A FIREBASE ---
         function obtenerCoordenadas(e) {
             const rect = canvasMorado.getBoundingClientRect();
-            let clienteX = e.clientX;
-            let clienteY = e.clientY;
-
-            if (e.touches && e.touches.length > 0) {
-                clienteX = e.touches[0].clientX;
-                clienteY = e.touches[0].clientY;
-            }
-
-            return { x: clienteX - rect.left, y: clienteY - rect.top };
+            let cX = e.clientX, cY = e.clientY;
+            if (e.touches && e.touches.length > 0) { cX = e.touches[0].clientX; cY = e.touches[0].clientY; }
+            return { x: cX - rect.left, y: cY - rect.top };
         }
 
         function iniciarTrazo(e) {
             if (e.type === 'touchstart') e.preventDefault(); 
-            dibujando = true;
-            reiniciarTemporizador(); 
-            
+            dibujando = true; reiniciarTemporizador(); 
             const { x, y } = obtenerCoordenadas(e);
-
             ctxAmarillo.beginPath(); ctxAmarillo.moveTo(x, y);
             ctxMorado.beginPath(); ctxMorado.moveTo(x, y);
-
-            const normX = x / canvasMorado.width;
-            const normY = y / canvasMorado.height;
-            db.ref('espejo/trazos').push({ t: 'start', x: normX, y: normY });
-
+            db.ref('espejo/trazos').push({ t: 'start', x: x / canvasMorado.width, y: y / canvasMorado.height });
             pintar(e);
         }
 
-        function detenerTrazo() {
-            dibujando = false;
-            ctxAmarillo.beginPath(); ctxMorado.beginPath();
-        }
+        function detenerTrazo() { dibujando = false; ctxAmarillo.beginPath(); ctxMorado.beginPath(); }
 
         function pintar(e) {
             if (!dibujando) return;
             if (e.type === 'touchmove') e.preventDefault(); 
             reiniciarTemporizador(); 
-
             const { x, y } = obtenerCoordenadas(e);
 
-            ctxAmarillo.lineWidth = grosorPincel;
-            ctxAmarillo.lineTo(x, y); ctxAmarillo.stroke();
+            ctxAmarillo.lineWidth = grosorPincel; ctxAmarillo.lineTo(x, y); ctxAmarillo.stroke();
             ctxAmarillo.beginPath(); ctxAmarillo.moveTo(x, y);
 
             ctxMorado.globalCompositeOperation = 'source-over';
-            ctxMorado.lineWidth = grosorPincel;
-            ctxMorado.strokeStyle = '#9b59b6';
+            ctxMorado.lineWidth = grosorPincel; ctxMorado.strokeStyle = '#9b59b6';
             ctxMorado.lineTo(x, y); ctxMorado.stroke();
             ctxMorado.beginPath(); ctxMorado.moveTo(x, y);
 
-            const normX = x / canvasMorado.width;
-            const normY = y / canvasMorado.height;
-            db.ref('espejo/trazos').push({ t: 'move', x: normX, y: normY });
+            db.ref('espejo/trazos').push({ t: 'move', x: x / canvasMorado.width, y: y / canvasMorado.height });
         }
 
-        canvasMorado.addEventListener('mousedown', iniciarTrazo);
-        canvasMorado.addEventListener('mousemove', pintar);
-        canvasMorado.addEventListener('mouseup', detenerTrazo);
-        canvasMorado.addEventListener('mouseout', detenerTrazo);
+        canvasMorado.addEventListener('mousedown', iniciarTrazo); canvasMorado.addEventListener('mousemove', pintar);
+        canvasMorado.addEventListener('mouseup', detenerTrazo); canvasMorado.addEventListener('mouseout', detenerTrazo);
         canvasMorado.addEventListener('touchstart', iniciarTrazo, { passive: false });
         canvasMorado.addEventListener('touchmove', pintar, { passive: false });
-        canvasMorado.addEventListener('touchend', detenerTrazo);
-        canvasMorado.addEventListener('touchcancel', detenerTrazo);
+        canvasMorado.addEventListener('touchend', detenerTrazo); canvasMorado.addEventListener('touchcancel', detenerTrazo);
 
-        // --- EFECTO VISUAL ---
         function desvanecerMorado() {
             ctxMorado.globalCompositeOperation = 'destination-out';
             ctxMorado.fillStyle = 'rgba(0, 0, 0, 0.04)';
