@@ -6,7 +6,6 @@
     <title>Borrador morado - MONITOR (TV) OPTIMIZADO</title>
     
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-    <!-- SDKs de Firebase -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
@@ -19,7 +18,7 @@
             color: #333;
             font-family: sans-serif;
             margin: 0;
-            padding: 40px; /* Mayor padding para respirar en la TV */
+            padding: 40px; 
             box-sizing: border-box;
             height: 100vh;
             overflow: hidden;
@@ -42,7 +41,7 @@
         #boton-empezar {
             background-color: #9b59b6;
             color: white;
-            font-size: 3.5rem; /* Botón masivo para el TV */
+            font-size: 3.5rem;
             font-weight: bold;
             padding: 30px 80px;
             border: none;
@@ -60,19 +59,19 @@
 
         .contenedor-ui {
             display: flex;
-            width: 95%; /* Ocupa casi todo el ancho de la TV */
-            max-width: 1600px; /* Tope expandido para 1080p/4K */
+            width: 95%; 
+            max-width: 1600px;
             align-items: center;
             gap: 30px;
-            margin-bottom: 40px; /* Más separación del lienzo */
+            margin-bottom: 40px; 
             flex-shrink: 0;
         }
 
         .fondo-barra {
             flex-grow: 1;
             background: #ecf0f1;
-            border-radius: 25px; /* Bordes más redondeados */
-            height: 50px; /* BARRA MUCHO MÁS GRUESA */
+            border-radius: 25px; 
+            height: 50px; 
             border: 4px solid #bdc3c7;
             overflow: hidden;
             box-shadow: inset 0 4px 8px rgba(0,0,0,0.1);
@@ -87,7 +86,7 @@
 
         #texto-progreso {
             font-weight: bold;
-            font-size: 2.8rem; /* TEXTO DE PORCENTAJE GIGANTE */
+            font-size: 2.8rem; 
             min-width: 120px;
             text-align: right;
             color: #8e44ad;
@@ -99,11 +98,11 @@
             max-width: 1600px;
             flex-grow: 1;
             min-height: 0;
-            border: 4px solid #e0e0e0; /* Borde de lienzo más grueso */
+            border: 4px solid #e0e0e0; 
             border-radius: 12px;
             box-shadow: 0 8px 30px rgba(0,0,0,0.08);
             overflow: hidden;
-            pointer-events: none; /* Bloquea interacciones locales */
+            pointer-events: none; 
         }
 
         canvas {
@@ -166,7 +165,6 @@
         let anchoCuadro, altoCuadro, xCuadro, yCuadro, grosorPincel;
         const colorAmarillo = '#ffeaa7'; 
 
-        // --- SISTEMA DE INICIO Y PANTALLA COMPLETA ---
         botonEmpezar.addEventListener('click', () => {
             const elemento = document.documentElement;
             if (elemento.requestFullscreen) {
@@ -181,7 +179,6 @@
             }, 300);
         });
 
-        // --- SISTEMA RESPONSIVE OPTIMIZADO PARA TV ---
         function redimensionarYConfigurar() {
             const contenedor = canvasAmarillo.parentElement;
             const anchoReal = contenedor.clientWidth;
@@ -197,12 +194,12 @@
                 ctx.lineJoin = 'round';
             });
 
-            // Área útil aumentada al 85% para pantallas apaisadas
             anchoCuadro = anchoReal * 0.85; 
             altoCuadro = altoReal * 0.85;   
             xCuadro = (anchoReal - anchoCuadro) / 2;
             yCuadro = (altoReal - altoCuadro) / 2;
             
+            // Grosor ajustado al 30% igual que la tableta
             grosorPincel = Math.min(anchoReal, altoReal) * 0.30; 
 
             crearEscenarioInicial();
@@ -226,7 +223,6 @@
             textoProgreso.innerText = '0%';
         }
 
-        // --- EFECTOS VISUALES ---
         function animarRestauracionAmarillo() {
             if (!restaurandoAmarillo) return; 
             ctxAmarillo.globalCompositeOperation = 'source-over';
@@ -284,6 +280,8 @@
                 ctxMorado.clearRect(0, 0, canvasMorado.width, canvasMorado.height);
             } else if (data.accion === 'restaurar') {
                 restaurandoAmarillo = true;
+                // LIMPIA LOS TRAZOS MORADOS VIEJOS EN EL TV
+                ctxMorado.clearRect(0, 0, canvasMorado.width, canvasMorado.height);
                 animarRestauracionAmarillo();
             } else if (data.accion === 'detener_restauracion') {
                 restaurandoAmarillo = false;
@@ -300,14 +298,18 @@
 
             if (data.confeti && !confetiLanzadoLocal) {
                 confetiLanzadoLocal = true;
-                const duracion = 1200; // Un poco más de duración
+                const duracion = 1500; 
                 const fin = Date.now() + duracion;
                 const colores = ['#9b59b6', '#8e44ad', '#ffeaa7', '#ffffff'];
 
                 (function frame() {
-                    // scalar: 2.5 HACE QUE EL CONFETI SEA GIGANTE PARA EL TV
-                    confetti({ particleCount: 6, angle: 60, spread: 70, origin: { x: 0 }, colors: colores, scalar: 2.5, zIndex: 2000 });
-                    confetti({ particleCount: 6, angle: 120, spread: 70, origin: { x: 1 }, colors: colores, scalar: 2.5, zIndex: 2000 });
+                    // Laterales: Menos cantidad, más grandes y un poco más abajo (y: 0.7)
+                    confetti({ particleCount: 2, angle: 60, spread: 55, origin: { x: 0, y: 0.7 }, colors: colores, scalar: 3.5, zIndex: 2000 });
+                    confetti({ particleCount: 2, angle: 120, spread: 55, origin: { x: 1, y: 0.7 }, colors: colores, scalar: 3.5, zIndex: 2000 });
+                    
+                    // Central: Ángulo 90 (hacia arriba), dispersión amplia y aún más grandes (scalar: 4.0)
+                    confetti({ particleCount: 2, angle: 90, spread: 100, origin: { x: 0.5, y: 0.6 }, colors: colores, scalar: 4.0, zIndex: 2000 });
+                    
                     if (Date.now() < fin) requestAnimationFrame(frame);
                 }());
             } else if (!data.confeti) {
