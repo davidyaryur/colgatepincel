@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Borrador morado - MONITOR (TV)</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- SDKs de Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #ffffff;
+            color: #333;
+            font-family: sans-serif;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+            height: 100vh;
+            overflow: hidden;
+            justify-content: center;
+        }
+
+        #pantalla-inicio {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #ffffff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        #boton-empezar {
+            background-color: #9b59b6;
+            color: white;
+            font-size: 2rem;
+            font-weight: bold;
+            padding: 15px 50px;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 6px 20px rgba(155, 89, 182, 0.4);
+            transition: transform 0.2s ease, background-color 0.2s ease;
+            letter-spacing: 2px;
+        }
+
+        #boton-empezar:hover {
+            background-color: #8e44ad;
+            transform: scale(1.05);
+        }
+
+        .contenedor-ui {
+            display: flex;
+            width: 100%;
+            max-width: 800px;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-shrink: 0;
+        }
+
+        .fondo-barra {
+            flex-grow: 1;
+            background: #ecf0f1;
+            border-radius: 12px;
+            height: 24px;
+            border: 2px solid #bdc3c7;
+            overflow: hidden;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        #barra-progreso {
+            width: 0%;
+            height: 100%;
+            background-color: #9b59b6; 
+            transition: width 0.2s ease-out;
+        }
+
+        #texto-progreso {
+            font-weight: bold;
+            font-size: 1.2rem;
+            min-width: 55px;
+            text-align: right;
+            color: #8e44ad;
+        }
+
+        .contenedor-lienzo {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            flex-grow: 1;
+            min-height: 0;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            overflow: hidden;
+            /* Clave para el monitor: Desactivamos eventos de puntero para que no se pueda dibujar aquí */
+            pointer-events: none; 
+        }
+
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        #canvas-amarillo {
+            background-color: #ffffff; 
+        }
+
+        #canvas-morado {
+            background-color: transparent;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="pantalla-inicio">
+        <button id="boton-empezar">PANTALLA COMPLETA</button>
+    </div>
+
+    <div class="contenedor-ui">
+        <div class="fondo-barra">
+            <div id="barra-progreso"></div>
+        </div>
+        <span id="texto-progreso">0%</span>
+    </div>
+
+    <div class="contenedor-lienzo">
+        <canvas id="canvas-amarillo"></canvas>
+        <canvas id="canvas-morado"></canvas>
+    </div>
+
+    <script>
+        // --- CONFIGURACIÓN DE FIREBASE ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyD4kmlHrIcq6lBwsjDNXfCMBTzzfsBzDXM",
+            authDomain: "borradormagico-4c34e.firebaseapp.com",
+            databaseURL: "https://borradormagico-4c34e-default-rtdb.firebaseio.com",
+            projectId: "borradormagico-4c34e",
+            storageBucket: "borradormagico-4c34e.firebasestorage.app",
+            messagingSenderId: "721035289842",
+            appId: "1:721035289842:web:06db6dc0457f61e3dedc6b",
+            measurementId: "G-W7MJGWB2VR"
+        };
+        
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        // --- REFERENCIAS DEL DOM Y VARIABLES ---
+        const canvasAmarillo = document.getElementById('canvas-amarillo');
+        const ctxAmarillo = canvasAmarillo.getContext('2d', { willReadFrequently: true });
+        
+        const canvasMorado = document.getElementById('canvas-morado');
+        const ctxMorado = canvasMorado.getContext('2d');
+        
+        const barraProgreso = document.getElementById('barra-progreso');
+        const textoProgreso = document.getElementById('texto-progreso');
+
+        const pantallaInicio = document.getElementById('pantalla-inicio');
+        const botonEmpezar = document.getElementById('boton-empezar');
+
+        let restaurandoAmarillo = false;
+        let confetiLanzadoLocal = false;
+        let anchoCuadro, altoCuadro, xCuadro, yCuadro, grosorPincel;
+        const colorAmarillo = '#ffeaa7'; 
+
+        // --- SISTEMA DE INICIO Y PANTALLA COMPLETA ---
+        botonEmpezar.addEventListener('click', () => {
+            const elemento = document.documentElement;
+            if (elemento.requestFullscreen) {
+                elemento.requestFullscreen().catch(err => console.log("Error pantalla completa:", err));
+            } else if (elemento.mozRequestFullScreen) {
+                elemento.mozRequestFullScreen();
+            } else if (elemento.webkitRequestFullscreen) {
+                elemento.webkitRequestFullscreen();
+            } else if (elemento.msRequestFullscreen) {
+                elemento.msRequestFullscreen();
+            }
+
+            pantallaInicio.style.display = 'none';
+
+            setTimeout(() => {
+                redimensionarYConfigurar();
+                desvanecerMorado();
+            }, 300);
+        });
+
+        // --- SISTEMA RESPONSIVE ---
+        function redimensionarYConfigurar() {
+            const contenedor = canvasAmarillo.parentElement;
+            const anchoReal = contenedor.clientWidth;
+            const altoReal = contenedor.clientHeight;
+
+            canvasAmarillo.width = anchoReal;
+            canvasAmarillo.height = altoReal;
+            canvasMorado.width = anchoReal;
+            canvasMorado.height = altoReal;
+
+            [ctxAmarillo, ctxMorado].forEach(ctx => {
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+            });
+
+            anchoCuadro = anchoReal * 0.6; 
+            altoCuadro = altoReal * 0.6;   
+            xCuadro = (anchoReal - anchoCuadro) / 2;
+            yCuadro = (altoReal - altoCuadro) / 2;
+            
+            // El grosor se calcula localmente según la pantalla del monitor
+            grosorPincel = Math.min(anchoReal, altoReal) * 0.15; 
+
+            crearEscenarioInicial();
+        }
+
+        window.addEventListener('resize', () => {
+            if (pantallaInicio.style.display === 'none') {
+                clearTimeout(window.resizeTimer);
+                window.resizeTimer = setTimeout(redimensionarYConfigurar, 100);
+            }
+        });
+
+        function crearEscenarioInicial() {
+            ctxAmarillo.globalCompositeOperation = 'source-over';
+            ctxAmarillo.fillStyle = colorAmarillo;
+            ctxAmarillo.fillRect(xCuadro, yCuadro, anchoCuadro, altoCuadro);
+            ctxAmarillo.globalCompositeOperation = 'destination-out';
+            
+            confetiLanzadoLocal = false;
+            barraProgreso.style.width = '0%';
+            textoProgreso.innerText = '0%';
+        }
+
+        // --- EFECTOS VISUALES (Animaciones autónomas) ---
+        function animarRestauracionAmarillo() {
+            if (!restaurandoAmarillo) return; 
+            ctxAmarillo.globalCompositeOperation = 'source-over';
+            ctxAmarillo.fillStyle = 'rgba(255, 234, 167, 0.05)'; 
+            ctxAmarillo.fillRect(xCuadro, yCuadro, anchoCuadro, altoCuadro);
+            requestAnimationFrame(animarRestauracionAmarillo);
+        }
+
+        function desvanecerMorado() {
+            ctxMorado.globalCompositeOperation = 'destination-out';
+            ctxMorado.fillStyle = 'rgba(0, 0, 0, 0.04)';
+            ctxMorado.fillRect(0, 0, canvasMorado.width, canvasMorado.height);
+            requestAnimationFrame(desvanecerMorado);
+        }
+
+        // =========================================================
+        // RECEPCIÓN DE DATOS EN TIEMPO REAL DESDE FIREBASE
+        // =========================================================
+
+        // 1. Escuchar los trazos (Dibujo)
+        db.ref('espejo/trazos').on('child_added', (snapshot) => {
+            const data = snapshot.val();
+            if (!data) return;
+
+            // Des-normalizar: multiplicar por el tamaño del canvas del monitor
+            const px = data.x * canvasMorado.width;
+            const py = data.y * canvasMorado.height;
+
+            if (data.t === 'start') {
+                ctxAmarillo.beginPath();
+                ctxAmarillo.moveTo(px, py);
+                ctxMorado.beginPath();
+                ctxMorado.moveTo(px, py);
+            } else if (data.t === 'move') {
+                // Borrar amarillo localmente
+                ctxAmarillo.lineWidth = grosorPincel;
+                ctxAmarillo.lineTo(px, py);
+                ctxAmarillo.stroke();
+                ctxAmarillo.beginPath();
+                ctxAmarillo.moveTo(px, py);
+
+                // Pintar morado localmente
+                ctxMorado.globalCompositeOperation = 'source-over';
+                ctxMorado.lineWidth = grosorPincel;
+                ctxMorado.strokeStyle = '#9b59b6';
+                ctxMorado.lineTo(px, py);
+                ctxMorado.stroke();
+                ctxMorado.beginPath();
+                ctxMorado.moveTo(px, py);
+            }
+        });
+
+        // 2. Escuchar comandos (Reset de pantalla, inactividad)
+        db.ref('espejo/comandos').on('value', (snapshot) => {
+            const data = snapshot.val();
+            if (!data) return;
+
+            if (data.accion === 'reset') {
+                crearEscenarioInicial();
+                ctxMorado.clearRect(0, 0, canvasMorado.width, canvasMorado.height);
+            } else if (data.accion === 'restaurar') {
+                restaurandoAmarillo = true;
+                animarRestauracionAmarillo();
+            } else if (data.accion === 'detener_restauracion') {
+                restaurandoAmarillo = false;
+                ctxAmarillo.globalCompositeOperation = 'destination-out';
+            }
+        });
+
+        // 3. Escuchar la Interfaz (Barra de progreso y confeti)
+        db.ref('espejo/ui').on('value', (snapshot) => {
+            const data = snapshot.val();
+            if (!data) return;
+
+            barraProgreso.style.width = data.progreso + '%';
+            textoProgreso.innerText = data.progreso + '%';
+
+            if (data.confeti && !confetiLanzadoLocal) {
+                confetiLanzadoLocal = true;
+                const duracion = 1000;
+                const fin = Date.now() + duracion;
+                const colores = ['#9b59b6', '#8e44ad', '#ffeaa7', '#ffffff'];
+
+                (function frame() {
+                    confetti({ particleCount: 4, angle: 60, spread: 55, origin: { x: 0 }, colors: colores });
+                    confetti({ particleCount: 4, angle: 120, spread: 55, origin: { x: 1 }, colors: colores });
+                    if (Date.now() < fin) requestAnimationFrame(frame);
+                }());
+            } else if (!data.confeti) {
+                confetiLanzadoLocal = false;
+            }
+        });
+
+    </script>
+</body>
+</html>
