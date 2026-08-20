@@ -18,11 +18,15 @@
             margin: 0;
             padding: 20px;
             box-sizing: border-box;
-            min-height: 100vh;
+            
+            /* Ajustes clave para que NUNCA se salga de la pantalla */
+            height: 100vh;
+            height: 100dvh; /* Soporte moderno para móviles (ignora la barra de navegación) */
+            overflow: hidden; /* Evita que se pueda hacer scroll */
+            
             justify-content: center;
         }
 
-        /* --- NUEVO: ESTILOS PANTALLA DE INICIO --- */
         #pantalla-inicio {
             position: fixed;
             top: 0;
@@ -33,7 +37,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            z-index: 1000; /* Asegura que esté por encima de todo */
+            z-index: 1000;
         }
 
         #boton-empezar {
@@ -58,7 +62,6 @@
         #boton-empezar:active {
             transform: scale(0.95);
         }
-        /* ------------------------------------------ */
 
         .contenedor-ui {
             display: flex;
@@ -67,6 +70,7 @@
             align-items: center;
             gap: 15px;
             margin-bottom: 20px;
+            flex-shrink: 0; /* Evita que la barra superior se encoja */
         }
 
         .fondo-barra {
@@ -98,7 +102,11 @@
             position: relative;
             width: 100%;
             max-width: 800px;
-            aspect-ratio: 8 / 5;
+            
+            /* Ajustes clave para adaptación horizontal y vertical */
+            flex-grow: 1; /* Toma todo el espacio sobrante disponible */
+            min-height: 0; /* Necesario para que Flexbox le permita encogerse */
+            
             border: 2px solid #e0e0e0;
             border-radius: 8px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.05);
@@ -128,7 +136,6 @@
 </head>
 <body>
 
-    <!-- NUEVO: Pantalla de inicio -->
     <div id="pantalla-inicio">
         <button id="boton-empezar">EMPEZAR</button>
     </div>
@@ -170,33 +177,28 @@
         // --- SISTEMA DE PANTALLA COMPLETA E INICIO ---
         
         botonEmpezar.addEventListener('click', () => {
-            // 1. Activar pantalla completa compatible con varios navegadores
             const elemento = document.documentElement;
             if (elemento.requestFullscreen) {
-                elemento.requestFullscreen();
-            } else if (elemento.mozRequestFullScreen) { /* Firefox */
+                elemento.requestFullscreen().catch(err => console.log("No se pudo entrar a pantalla completa:", err));
+            } else if (elemento.mozRequestFullScreen) {
                 elemento.mozRequestFullScreen();
-            } else if (elemento.webkitRequestFullscreen) { /* Chrome, Safari & Opera */
+            } else if (elemento.webkitRequestFullscreen) {
                 elemento.webkitRequestFullscreen();
-            } else if (elemento.msRequestFullscreen) { /* IE/Edge */
+            } else if (elemento.msRequestFullscreen) {
                 elemento.msRequestFullscreen();
             }
 
-            // 2. Ocultar la pantalla de inicio
             pantallaInicio.style.display = 'none';
 
-            // 3. Inicializar los lienzos (se usa un pequeño timeout para que el navegador 
-            // asuma el tamaño real de pantalla completa antes de medir los canvas)
             setTimeout(() => {
                 redimensionarYConfigurar();
                 desvanecerMorado();
                 reiniciarTemporizador();
                 
-                // Empezar a calcular el progreso solo cuando se inicia
                 if (!intervaloProgreso) {
                     intervaloProgreso = setInterval(calcularProgreso, 250);
                 }
-            }, 200);
+            }, 300); // Damos un margen ligeramente mayor (300ms) para que rote la pantalla si es el caso
         });
 
         // --- SISTEMA RESPONSIVE ---
@@ -221,13 +223,14 @@
             xCuadro = (anchoReal - anchoCuadro) / 2;
             yCuadro = (altoReal - altoCuadro) / 2;
             
-            grosorPincel = anchoReal * 0.12; 
+            // Ajuste: El grosor del pincel ahora se basa en el lado más pequeño de la pantalla
+            // para que no quede enorme en pantallas muy horizontales.
+            grosorPincel = Math.min(anchoReal, altoReal) * 0.15; 
 
             crearEscenarioInicial();
         }
 
         window.addEventListener('resize', () => {
-            // Solo redimensionar si la pantalla de inicio ya no está visible
             if (pantallaInicio.style.display === 'none') {
                 clearTimeout(window.resizeTimer);
                 window.resizeTimer = setTimeout(redimensionarYConfigurar, 100);
