@@ -3,9 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Borrador morado</title>
+    <title>Borrador morado - TABLETA</title>
     
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- SDKs de Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
     <style>
         body {
@@ -18,12 +21,9 @@
             margin: 0;
             padding: 20px;
             box-sizing: border-box;
-            
-            /* Ajustes clave para que NUNCA se salga de la pantalla */
             height: 100vh;
-            height: 100dvh; /* Soporte moderno para móviles (ignora la barra de navegación) */
-            overflow: hidden; /* Evita que se pueda hacer scroll */
-            
+            height: 100dvh;
+            overflow: hidden;
             justify-content: center;
         }
 
@@ -70,7 +70,7 @@
             align-items: center;
             gap: 15px;
             margin-bottom: 20px;
-            flex-shrink: 0; /* Evita que la barra superior se encoja */
+            flex-shrink: 0;
         }
 
         .fondo-barra {
@@ -102,11 +102,8 @@
             position: relative;
             width: 100%;
             max-width: 800px;
-            
-            /* Ajustes clave para adaptación horizontal y vertical */
-            flex-grow: 1; /* Toma todo el espacio sobrante disponible */
-            min-height: 0; /* Necesario para que Flexbox le permita encogerse */
-            
+            flex-grow: 1;
+            min-height: 0;
             border: 2px solid #e0e0e0;
             border-radius: 8px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.05);
@@ -153,6 +150,23 @@
     </div>
 
     <script>
+        // --- CONFIGURACIÓN DE FIREBASE ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyD4kmlHrIcq6lBwsjDNXfCMBTzzfsBzDXM",
+            authDomain: "borradormagico-4c34e.firebaseapp.com",
+            databaseURL: "https://borradormagico-4c34e-default-rtdb.firebaseio.com",
+            projectId: "borradormagico-4c34e",
+            storageBucket: "borradormagico-4c34e.firebasestorage.app",
+            messagingSenderId: "721035289842",
+            appId: "1:721035289842:web:06db6dc0457f61e3dedc6b",
+            measurementId: "G-W7MJGWB2VR"
+        };
+        
+        // Inicializar Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        // --- REFERENCIAS DEL DOM Y VARIABLES ---
         const canvasAmarillo = document.getElementById('canvas-amarillo');
         const ctxAmarillo = canvasAmarillo.getContext('2d', { willReadFrequently: true });
         
@@ -175,7 +189,6 @@
         const colorAmarillo = '#ffeaa7'; 
 
         // --- SISTEMA DE PANTALLA COMPLETA E INICIO ---
-        
         botonEmpezar.addEventListener('click', () => {
             const elemento = document.documentElement;
             if (elemento.requestFullscreen) {
@@ -195,14 +208,17 @@
                 desvanecerMorado();
                 reiniciarTemporizador();
                 
+                // Limpiamos la base de datos de trazos anteriores al iniciar
+                db.ref('espejo/trazos').remove();
+                db.ref('espejo/ui').set({ progreso: 0, confeti: false });
+                
                 if (!intervaloProgreso) {
                     intervaloProgreso = setInterval(calcularProgreso, 250);
                 }
-            }, 300); // Damos un margen ligeramente mayor (300ms) para que rote la pantalla si es el caso
+            }, 300);
         });
 
         // --- SISTEMA RESPONSIVE ---
-        
         function redimensionarYConfigurar() {
             const contenedor = canvasAmarillo.parentElement;
             const anchoReal = contenedor.clientWidth;
@@ -223,11 +239,12 @@
             xCuadro = (anchoReal - anchoCuadro) / 2;
             yCuadro = (altoReal - altoCuadro) / 2;
             
-            // Ajuste: El grosor del pincel ahora se basa en el lado más pequeño de la pantalla
-            // para que no quede enorme en pantallas muy horizontales.
             grosorPincel = Math.min(anchoReal, altoReal) * 0.15; 
 
             crearEscenarioInicial();
+            
+            // Avisar al monitor que debe resetearse para coincidir
+            db.ref('espejo/comandos').set({ accion: 'reset', ts: Date.now() });
         }
 
         window.addEventListener('resize', () => {
@@ -249,7 +266,6 @@
         }
 
         // --- CÁLCULO DE PROGRESO ---
-        
         function calcularProgreso() {
             if (anchoCuadro === 0 || altoCuadro === 0) return;
 
@@ -281,6 +297,9 @@
             } else if (porcentajeRedondeado < 90) {
                 confetiLanzado = false; 
             }
+
+            // Enviar estado de UI al monitor remoto
+            db.ref('espejo/ui').set({ progreso: porcentajeRedondeado, confeti: confetiLanzado });
         }
 
         function dispararConfeti() {
@@ -299,14 +318,18 @@
         }
 
         // --- GESTIÓN DE INACTIVIDAD ---
-
         function reiniciarTemporizador() {
             clearTimeout(temporizadorInactividad);
             restaurandoAmarillo = false;
             ctxAmarillo.globalCompositeOperation = 'destination-out';
+            
+            // Avisar al monitor que se detiene la restauración
+            db.ref('espejo/comandos').set({ accion: 'detener_restauracion', ts: Date.now() });
 
             temporizadorInactividad = setTimeout(() => {
                 restaurandoAmarillo = true;
+                // Avisar al monitor que inicie la restauración
+                db.ref('espejo/comandos').set({ accion: 'restaurar', ts: Date.now() });
                 animarRestauracionAmarillo();
             }, 5000);
         }
@@ -321,8 +344,7 @@
             requestAnimationFrame(animarRestauracionAmarillo);
         }
 
-        // --- LÓGICA DE DIBUJO ---
-
+        // --- LÓGICA DE DIBUJO Y ENVÍO A FIREBASE ---
         function obtenerCoordenadas(e) {
             const rect = canvasMorado.getBoundingClientRect();
             let clienteX = e.clientX;
@@ -348,6 +370,11 @@
             ctxMorado.beginPath();
             ctxMorado.moveTo(x, y);
 
+            // Normalizar coordenadas (0 a 1) para enviarlas y que el TV las escale
+            const normX = x / canvasMorado.width;
+            const normY = y / canvasMorado.height;
+            db.ref('espejo/trazos').push({ t: 'start', x: normX, y: normY });
+
             pintar(e);
         }
 
@@ -364,14 +391,14 @@
 
             const { x, y } = obtenerCoordenadas(e);
 
-            // Borrar amarillo
+            // Borrar amarillo localmente
             ctxAmarillo.lineWidth = grosorPincel;
             ctxAmarillo.lineTo(x, y);
             ctxAmarillo.stroke();
             ctxAmarillo.beginPath();
             ctxAmarillo.moveTo(x, y);
 
-            // Pintar morado
+            // Pintar morado localmente
             ctxMorado.globalCompositeOperation = 'source-over';
             ctxMorado.lineWidth = grosorPincel;
             ctxMorado.strokeStyle = '#9b59b6';
@@ -379,18 +406,26 @@
             ctxMorado.stroke();
             ctxMorado.beginPath();
             ctxMorado.moveTo(x, y);
+
+            // Enviar coordenadas de movimiento normalizadas
+            const normX = x / canvasMorado.width;
+            const normY = y / canvasMorado.height;
+            db.ref('espejo/trazos').push({ t: 'move', x: normX, y: normY });
         }
 
+        // Eventos para mouse
         canvasMorado.addEventListener('mousedown', iniciarTrazo);
         canvasMorado.addEventListener('mousemove', pintar);
         canvasMorado.addEventListener('mouseup', detenerTrazo);
         canvasMorado.addEventListener('mouseout', detenerTrazo);
 
+        // Eventos para touch (Tableta)
         canvasMorado.addEventListener('touchstart', iniciarTrazo, { passive: false });
         canvasMorado.addEventListener('touchmove', pintar, { passive: false });
         canvasMorado.addEventListener('touchend', detenerTrazo);
         canvasMorado.addEventListener('touchcancel', detenerTrazo);
 
+        // --- EFECTO VISUAL ---
         function desvanecerMorado() {
             ctxMorado.globalCompositeOperation = 'destination-out';
             ctxMorado.fillStyle = 'rgba(0, 0, 0, 0.04)';
