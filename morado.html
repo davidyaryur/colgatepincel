@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Borrador morado</title>
+    <title>Borrador morado - TABLETA (Sin confeti local)</title>
     
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- Se eliminó la librería de confeti para optimizar la carga -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
@@ -144,22 +144,15 @@
             }
 
             const pRedondeado = Math.floor(porcentaje);
+            
+            // Solo enviamos la señal de confeti, no lo disparamos localmente
             if (pRedondeado === 100 && !confetiLanzado) {
-                confetiLanzado = true; dispararConfeti(); 
+                confetiLanzado = true; 
             } else if (pRedondeado < 90) {
                 confetiLanzado = false; 
             }
+            
             db.ref('espejo/ui').set({ progreso: pRedondeado, confeti: confetiLanzado });
-        }
-
-        function dispararConfeti() {
-            const fin = Date.now() + 1000;
-            const colores = ['#9b59b6', '#8e44ad', '#ffeaa7', '#ffffff'];
-            (function frame() {
-                confetti({ particleCount: 4, angle: 60, spread: 55, origin: { x: 0 }, colors: colores });
-                confetti({ particleCount: 4, angle: 120, spread: 55, origin: { x: 1 }, colors: colores });
-                if (Date.now() < fin) requestAnimationFrame(frame);
-            }());
         }
 
         function reiniciarTemporizador() {
@@ -168,19 +161,14 @@
             ctxAmarillo.globalCompositeOperation = 'destination-out';
             db.ref('espejo/comandos').set({ accion: 'detener_restauracion', ts: Date.now() });
 
-            // --- AQUÍ ESTÁN LOS CAMBIOS PRINCIPALES ---
             temporizadorInactividad = setTimeout(() => {
                 restaurandoAmarillo = true;
                 db.ref('espejo/comandos').set({ accion: 'restaurar', ts: Date.now() });
                 
-                // 1. Borramos el historial de trazos en Firebase para no saturarlo
+                // Borramos base de datos y reseteamos UI
                 db.ref('espejo/trazos').remove();
-                
-                // 2. Reiniciamos el progreso y el confeti a 0
                 db.ref('espejo/ui').set({ progreso: 0, confeti: false });
                 confetiLanzado = false;
-                
-                // 3. Limpiamos los trazos morados locales de la tableta
                 ctxMorado.clearRect(0, 0, canvasMorado.width, canvasMorado.height);
 
                 animarRestauracionAmarillo();
