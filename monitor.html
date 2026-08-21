@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Borrador morado</title>
+    <title>Borrador morado - MONITOR (TV) DEFINITIVO</title>
     
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -294,8 +294,13 @@
             barraProgreso.style.width = data.progreso + '%';
             textoProgreso.innerText = data.progreso + '%';
 
-            // --- AQUÍ ESTÁ EL CANDADO LÓGICO ---
-            // Solo lanzamos confeti si data.confeti es true Y NO estamos restaurando el amarillo
+            // --- NUEVO: BORRAR RESTOS DE AMARILLO AL 100% ---
+            if (data.progreso === 100 && !restaurandoAmarillo) {
+                // Esto limpia el lienzo amarillo por completo para que quede blanco puro
+                ctxAmarillo.clearRect(xCuadro, yCuadro, anchoCuadro, altoCuadro);
+            }
+
+            // --- CANDADO LÓGICO DEL CONFETI ---
             if (data.confeti && !confetiLanzadoLocal && !restaurandoAmarillo) {
                 confetiLanzadoLocal = true;
                 const duracion = 1500; 
